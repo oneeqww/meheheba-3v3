@@ -6,7 +6,7 @@ if(u.startsWith('/img/')){const f=path.join(__dirname,'img',path.basename(u));
 fs.readFile(f,(e,d)=>{if(e){r.writeHead(404);return r.end()}r.writeHead(200,{'Content-Type':mime[path.extname(f).toLowerCase()]||'application/octet-stream','Cache-Control':'public,max-age=3600'});r.end(d)});return}
 r.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});r.end(html)});
 const wss=new WebSocketServer({server:srv});
-const rooms=new Map(),L='ABCDEFGHJKLMNPQRSTUVWXYZ',HEROES=['dex','key','kach'];
+const rooms=new Map(),L='ABCDEFGHJKLMNPQRSTUVWXYZ',HEROES=['dex','key','kach','boss'];
 let nid=1;
 const tx=(w,o)=>{if(w.readyState==1)w.send(JSON.stringify(o))};
 const code=()=>{let c;do{c=Array.from({length:4},()=>L[Math.random()*L.length|0]).join('')}while(rooms.has(c));return c};
@@ -14,7 +14,7 @@ const pub=r=>{const ps=r.players.map(p=>({id:p.id,name:p.name,team:p.team,hero:p
 r.players.forEach(p=>tx(p.ws,{t:'room',code:r.code,name:r.name,open:r.open,size:r.size,host:r.host,you:p.id,started:r.started,players:ps}))};
 function leave(w){const r=w.room;if(!r)return;w.room=null;r.players=r.players.filter(p=>p.ws!==w);
 if(!r.players.length){rooms.delete(r.code);return}
-if(r.started){r.players.forEach(p=>{tx(p.ws,{t:'closed'});p.ws.room=null});rooms.delete(r.code)}
+if(r.started){if(r.host==w.id){r.players.forEach(p=>{tx(p.ws,{t:'closed'});p.ws.room=null});rooms.delete(r.code)}else{const hh=r.players.find(p=>p.id==r.host);if(hh)tx(hh.ws,{t:'inp',from:w.id,left:1})}}
 else{if(r.host==w.id)r.host=r.players[0].id;pub(r)}}
 wss.on('connection',w=>{w.id=nid++;w.room=null;w.alive=true;w.on('pong',()=>{w.alive=true});
 w.on('message',d=>{let m;try{m=JSON.parse(d)}catch(e){return}
